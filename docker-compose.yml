@@ -1,0 +1,57 @@
+version: '3'
+services:
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    volumes:
+      - ./metabase-data:/metabase-data
+    ports:
+      - "3001:3000"
+    depends_on:
+      - db
+    environment:
+      MB_DB_TYPE: mysql
+      MB_DB_DBNAME: mpay
+      MB_DB_PORT: 3306
+      MB_DB_USER: user
+      MB_DB_PASS: secret
+      MB_DB_HOST: db
+    healthcheck:
+      test: curl --fail -I http://localhost:3000/api/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - metabase-network
+
+  db:
+    image: mysql:8.0
+    container_name: db
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password --sql_mode="" --skip-log-bin --bind-address=0.0.0.0
+    ports:
+      - "3218:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: mpay
+      MYSQL_USER: user
+      MYSQL_PASSWORD: secret
+    volumes:
+      - /mysql_data:/var/lib/mysql
+    networks:
+      - metabase-network
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      - metabase-network
+
+networks:
+  metabase-network:
+    driver: bridge
